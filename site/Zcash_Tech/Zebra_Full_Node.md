@@ -10,7 +10,7 @@
 - It validates blocks and transactions, keeps the chain state, and talks to other nodes over the peer-to-peer network.
 - Zebra and zcashd implemented the same protocol and could interoperate. Since the zcashd retirement, Zebra carries the consensus role.
 - Two ways to run it: the `zfnd/zebra` Docker image, or a build from source.
-- Recommended hardware is 4 CPU cores, 16 GB RAM, and 300 GB of disk. The minimum is 2 cores and 4 GB RAM, with the same 300 GB of disk.
+- Recommended hardware is 4 CPU cores and 16 GB RAM. The minimum is 2 cores and 4 GB RAM. Plan for 300 GB of disk with the default archive. See [Disk Requirements](#disk-requirements) for the pruning option in the 7.2.0 test releases.
 
 ## Core Explanation
 
@@ -109,21 +109,29 @@ Installation guide: [zebra.zfnd.org/user/install.html](https://zebra.zfnd.org/us
 
 - CPU: 4 CPU cores
 - RAM: 16 GB
-- Disk Space: 300 GB available disk space for compiling binaries and storing cached chain state
+- Disk Space: 300 GB available for compiling binaries and storing the default archive
 - Network: 100 Mbps network connection with a minimum of 300 GB uploads and downloads per month
 
 ### Minimum Requirements
 
 - CPU: 2 CPU cores
 - RAM: 4 GB
-- Disk Space: 300 GB of available disk space
+- Disk Space: 300 GB available for the default archive
 
 Zebra's test suite may take over an hour to complete depending on your machine specifications. Slower systems can compile and run Zebra. The precise performance boundaries have not been established through testing.
 
 ### Disk Requirements
 
-- Zebra uses approximately 300 GB for cached Mainnet data and 10 GB for cached Testnet data. Expect disk usage to increase over time.
+- An archive uses approximately 300 GB for cached Mainnet data and 10 GB for cached Testnet data. Expect disk usage to increase over time.
 - The database is cleaned up periodically, and also on shutdown or restart. Changes are committed using database transactions. Incomplete changes caused by forced termination or a panic are rolled back the next time Zebra starts.
+
+#### Pruning on a mining node
+
+Zebra 7.2.0 test releases can discard older transaction bodies after validating them. A standalone mining node can still validate and submit blocks. Keep an archive for historical wallet rescans, starting an indexer from scratch, a pool that needs older transactions for accounting, or a `zcashd` sidecar. Use a separate cache to test the beta alongside your stable production node. [Zcash Foundation release notes](https://github.com/ZcashFoundation/zebra/releases/tag/v7.2.0-beta.2)
+
+For a fresh Mainnet test node, add `prune_blocks_older_than = 10000` to the existing `[state]` section in `zebrad.toml`. Zebra retains at least 10,000 recent finalized blocks and genesis. In one Mainnet measurement, the database occupied about 282 GB as an archive and 15 GB after pruning and compaction. Allow extra space for the initial sync and compaction. The retained indexes also grow over time. [Pruning guide and disk measurements](https://zebra.zfnd.org/next/user/pruning.html)
+
+To check what the node can serve, call `getblockchaininfo`. After the first deletion, `pruned` is `true` and `pruneheight` marks the start of the retained range of complete block bodies. To recover deleted history, restore an archive backup or synchronize a fresh archive. [RPC behavior on a pruned node](https://zebra.zfnd.org/next/user/pruning.html#rpc-and-peer-behaviour)
 
 ### Network Requirements and Ports
 
